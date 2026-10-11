@@ -20,6 +20,19 @@ jobs:
         working-directory: mobile/desktop-port
         run: ./build.sh
 
+      - name: Downgrade CSS for iOS 16.4 WebKit (oklch/color-mix -> rgb)
+        working-directory: mobile/desktop-port
+        run: |
+          cd scripts
+          npm init -y >/dev/null
+          npm install lightningcss culori --no-audit --no-fund
+          for f in ../dist/assets/*.css; do
+            echo "processing $f"
+            node down.js "$f" "$f.tmp" && mv "$f.tmp" "$f"
+            node varfix.js "$f" "$f.tmp" && mv "$f.tmp" "$f"
+          done
+          echo "oklch remaining: $(grep -o 'oklch(' ../dist/assets/*.css | wc -l | tr -d ' ')"
+
       - name: Install app deps and sync
         working-directory: mobile
         run: |
