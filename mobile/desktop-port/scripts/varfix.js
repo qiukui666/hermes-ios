@@ -9,5 +9,10 @@ css = css.replace(/oklch\(\s*([0-9.]+)%?\s+([0-9.]+)\s+([0-9.]+)(?:\/\s*([0-9.%]
     return a !== undefined ? `rgba(${r}, ${g}, ${b}, ${a})` : `rgb(${r}, ${g}, ${b})`;
   } catch { return m; }
 });
+
+// Relative color syntax (oklch(from currentColor ...)) aborts iOS 16.4 WebKit
+// even inside var() fallbacks. Replace with a plain translucent color.
+css = css.replace(/oklch\(from currentColor[^)]*\)/g, "rgba(128, 128, 128, 0.35)");
+
 fs.writeFileSync(process.argv[3], css);
 console.log('remaining oklch:', (css.match(/oklch\(/g)||[]).length);
