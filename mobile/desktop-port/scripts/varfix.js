@@ -14,5 +14,10 @@ css = css.replace(/oklch\(\s*([0-9.]+)%?\s+([0-9.]+)\s+([0-9.]+)(?:\/\s*([0-9.%]
 // even inside var() fallbacks. Replace with a plain translucent color.
 css = css.replace(/oklch\(from currentColor[^)]*\)/g, "rgba(128, 128, 128, 0.35)");
 
+
+// color-mix(in oklch, ...) aborts iOS 16.4 WebKit (bad_variant_access) even
+// inside @supports blocks. Replace the oklch interpolation space with srgb.
+css = css.replace(/color-mix\(in oklch/g, "color-mix(in srgb");
+
 fs.writeFileSync(process.argv[3], css);
 console.log('remaining oklch:', (css.match(/oklch\(/g)||[]).length);
