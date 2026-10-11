@@ -1,5 +1,5 @@
---- a/vite.config.ts
-+++ b/vite.config.ts
+--- a/apps/desktop/vite.config.ts
++++ b/apps/desktop/vite.config.ts
 @@ -27,8 +27,24 @@
  
  export default defineConfig({
