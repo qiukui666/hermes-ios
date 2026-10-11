@@ -26,39 +26,25 @@ jobs:
           npm install
           npx cap sync ios
 
-      - name: Prepare unsigned xcconfig (no team, ad-hoc style)
-        working-directory: mobile/ios
-        run: |
-          cat > App/Unsigned.xcconfig <<'EOF'
-          CODE_SIGNING_ALLOWED = NO
-          CODE_SIGN_IDENTITY =
-          DEVELOPMENT_TEAM =
-          PRODUCT_BUNDLE_IDENTIFIER = com.qiukui.hermes.mobile
-          EOF
-          # 让项目吃到 Unsigned.xcconfig
-          sed -i '' 's|// Set.*||' App/App.xcconfig 2>/dev/null || true
-          cat App/Unsigned.xcconfig >> App/App.xcconfig
-
-      - name: Pod install
-        working-directory: mobile/ios/App
-        run: pod install
-
-      - name: Archive (unsigned)
+      - name: Ad-hoc sign all binaries with ldid
         working-directory: mobile/ios/App
         run: |
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -derivedDataPath build archive -archivePath build/Hermes.xcarchive CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY=""
-
-      - name: Export unsigned ipa
-        working-directory: mobile/ios/App
-        run: |
+          brew install ldid
+          ARCHIVE=build/Hermes.xcarchive
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -derivedDataPath build archive -archivePath $ARCHIVE CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" | tail -5
+          APP_PATH=$(ls -d $ARCHIVE/Products/Applications/*.app | head -1)
+          ldid -S "$APP_PATH/App"
+          for fw in "$APP_PATH"/Frameworks/*.framework/*; do
+            [ -f "$fw" ] && file "$fw" | grep -q Mach-O && ldid -S "$fw"
+          done
           mkdir -p Payload
-          cp -R build/Hermes.xcarchive/Products/Applications/*.app Payload/
-          zip -r Hermes-iOS-unsigned.ipa Payload -x "*.DS_Store"
-          ls -la Hermes-iOS-unsigned.ipa
+          cp -R "$APP_PATH" Payload/
+          zip -qry Hermes-iOS.ipa Payload
+          ls -la Hermes-iOS.ipa
 
       - name: Upload ipa artifact
         uses: actions/upload-artifact@v4
         with:
           name: hermes-ios-ipa
-          path: mobile/ios/App/Hermes-iOS-unsigned.ipa
+          path: mobile/ios/App/Hermes-iOS.ipa
           retention-days: 30
